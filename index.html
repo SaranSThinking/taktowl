@@ -1,0 +1,1090 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1B2A33">
+<meta name="description" content="A focus timer kept by an owl. Works on Windows, Android and iPhone.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="TaktOwl">
+<title>TaktOwl</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+:root{
+  --ground:#EDF1EE; --grid:rgba(27,42,51,.055); --surface:#F9FBF9; --surface-2:#E3EAE6;
+  --ink:#1B2A33; --muted:#566870; --line:#CDD7D2; --track:#DCE4E0; --tick:rgba(27,42,51,.22);
+  --accent:#E3A21A; --accent-ink:#2E2000; --accent-soft:rgba(227,162,26,.18); --bar:#9FB3AB;
+  --good:#2C7A57; --warn:#C0432A; --shadow:0 1px 0 rgba(27,42,51,.06),0 12px 32px -18px rgba(27,42,51,.35);
+  --display:"Bricolage Grotesque","Segoe UI",system-ui,sans-serif;
+  --body:"Atkinson Hyperlegible","Segoe UI",system-ui,-apple-system,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Consolas,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --ground:#10171A; --grid:rgba(227,235,231,.035); --surface:#172125; --surface-2:#1F2B30;
+    --ink:#E3EBE7; --muted:#93A4A5; --line:#2A393E; --track:#243237; --tick:rgba(227,235,231,.2);
+    --accent:#F0B43A; --accent-ink:#241900; --accent-soft:rgba(240,180,58,.16); --bar:#48605A;
+    --good:#5FBF8F; --warn:#F07A5E; --shadow:0 1px 0 rgba(0,0,0,.3),0 14px 36px -20px rgba(0,0,0,.8);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#10171A; --grid:rgba(227,235,231,.035); --surface:#172125; --surface-2:#1F2B30;
+  --ink:#E3EBE7; --muted:#93A4A5; --line:#2A393E; --track:#243237; --tick:rgba(227,235,231,.2);
+  --accent:#F0B43A; --accent-ink:#241900; --accent-soft:rgba(240,180,58,.16); --bar:#48605A;
+  --good:#5FBF8F; --warn:#F07A5E; --shadow:0 1px 0 rgba(0,0,0,.3),0 14px 36px -20px rgba(0,0,0,.8);
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{min-height:100%}
+body{
+  margin:0; background-color:var(--ground); color:var(--ink); font:16px/1.5 var(--body);
+  background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+  background-size:24px 24px;
+}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.app{max-width:1080px;margin:0 auto;padding-inline:16px;padding-block:18px 40px;display:grid;gap:20px}
+
+/* header */
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.brand{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.brand h1{font:800 clamp(26px,4vw,34px)/1 var(--display);letter-spacing:-.02em;margin:0}
+.brand h1 b{color:var(--accent)}
+.brand p{margin:0;color:var(--muted);font-size:14px}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:10px 16px;cursor:pointer;font-weight:700;min-height:44px}
+.btn:hover{border-color:var(--muted)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.primary:hover{filter:brightness(1.05)}
+.btn.small{padding:6px 12px;min-height:36px;font-size:14px}
+
+/* layout */
+.main{display:grid;gap:20px;align-items:start}
+@media (min-width:900px){.main{grid-template-columns:minmax(0,1.05fr) minmax(0,1fr)}.stage{position:sticky;top:calc(env(safe-area-inset-top,0px) + 16px)}}
+
+/* stage */
+.stage{background:var(--surface);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);padding:22px 20px 20px;display:grid;justify-items:center;gap:10px;text-align:center}
+.bubble{position:relative;max-width:34ch;min-height:3.2em;background:var(--surface-2);border-radius:14px;padding:10px 14px;font-size:15px;line-height:1.4;text-wrap:balance;display:flex;align-items:center;justify-content:center;transition:opacity .4s}
+.bubble::after{content:"";position:absolute;left:50%;bottom:-8px;margin-left:-8px;border:8px solid transparent;border-bottom:0;border-top-color:var(--surface-2)}
+.bubble.quiet{opacity:.55}
+#owl{width:min(230px,60vw);height:auto;overflow:visible;display:block}
+.clock{font:700 clamp(56px,13vw,88px)/1 var(--mono);letter-spacing:-.04em;font-variant-numeric:tabular-nums;margin-top:4px}
+.mode{font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);display:flex;gap:8px;align-items:center}
+.mode .dot{width:8px;height:8px;border-radius:50%;background:var(--muted)}
+.mode[data-m="focus"] .dot{background:var(--accent)}
+.mode[data-m="break"] .dot{background:var(--good)}
+.mode[data-m="paused"] .dot{background:var(--warn)}
+.taktwrap{width:100%;max-width:420px;display:grid;gap:4px}
+.takt{position:relative;height:14px;border-radius:4px;background:var(--track);overflow:hidden}
+.takt i{position:absolute;inset:0 auto 0 0;width:0;background:var(--accent);transition:width .25s linear}
+.takt.brk i{background:var(--good)}
+.takt::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(90deg,transparent 0 calc(var(--step,4%) - 1px),var(--tick) calc(var(--step,4%) - 1px) var(--step,4%))}
+.scale{display:flex;justify-content:space-between;font:500 11px var(--mono);color:var(--muted)}
+.task{width:100%;max-width:420px;display:grid;gap:4px;text-align:left}
+.task label{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.field{width:100%;border:1px solid var(--line);background:var(--ground);border-radius:10px;padding:10px 12px;min-height:44px}
+.controls{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:4px}
+.controls .primary{min-width:150px}
+.away{font-size:13px;color:var(--muted);min-height:1.2em}
+.away.over{color:var(--warn);font-weight:700}
+
+/* owl */
+#owl{--owl-body:#8A5A3B;--owl-belly:#F2DEC0;--owl-face:#EBCFA6;--owl-mark:#7A4E32}
+#owl[data-owl="snowy"]{--owl-body:#DDE2E6;--owl-belly:#FFFFFF;--owl-face:#F3F5F7;--owl-mark:#3A444C}
+#owl[data-owl="night"]{--owl-body:#4B4F6E;--owl-belly:#BFC3DD;--owl-face:#D8DBEC;--owl-mark:#3D4160}
+#owl[data-owl="teak"]{--owl-body:#5C6B3A;--owl-belly:#E6E2BF;--owl-face:#D9D6AE;--owl-mark:#4A572C}
+#owl .shadow{fill:var(--ink);opacity:.1}
+#owl .body{fill:var(--owl-body)}
+#owl .belly{fill:var(--owl-belly)}
+#owl .marks{fill:none;stroke:var(--owl-mark);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;opacity:.55}
+#owl .face{fill:var(--owl-face)}
+#owl .eye{fill:#FFFFFF}
+#owl .pupil{fill:#16222A}
+#owl .glint{fill:#FFFFFF}
+#owl .beak,#owl .foot{fill:#E3A21A}
+#owl .wing{fill:var(--owl-body);filter:brightness(.88)}
+#owl .lid{fill:var(--owl-body);transform-box:fill-box;transform-origin:50% 0;transform:scaleY(0);transition:transform .12s ease}
+#owl .closed{fill:none;stroke:var(--owl-mark);stroke-width:3;stroke-linecap:round;opacity:0}
+#owl .cap-top{fill:#1B2A33}
+#owl .cap-band{fill:#26363F}
+#owl .tassel{stroke:#E3A21A;stroke-width:2.5;fill:none;stroke-linecap:round}
+#owl .tassel-end{fill:#E3A21A}
+#owl.no-cap .cap{display:none}
+#owl .watch-face{fill:#F9FBF9;stroke:#1B2A33;stroke-width:3}
+#owl .watch-crown{fill:#1B2A33}
+#owl .hand{stroke:#C0432A;stroke-width:2.5;stroke-linecap:round;transform-box:fill-box;transform-origin:50% 100%;animation:spin 8s linear infinite;animation-play-state:paused}
+#owl .tickmk{stroke:#1B2A33;stroke-width:1.5}
+#owl .book{fill:#2C7A57}
+#owl .page{fill:#F9FBF9}
+#owl .glass{fill:rgba(120,180,220,.28);stroke:#5A8FB0;stroke-width:2}
+#owl .water{fill:#6FB2DD}
+#owl .zzz{fill:var(--muted);font:700 18px var(--display)}
+#owl .alert-c{fill:#C0432A}
+#owl .alert-t{fill:#FFFFFF;font:800 22px var(--display);text-anchor:middle}
+#owl .prop{opacity:0;transition:opacity .25s}
+#owl .wing,#owl #pupils{transition:transform .25s ease}
+#owl .wing-l{transform-box:fill-box;transform-origin:100% 0}
+#owl .wing-r{transform-box:fill-box;transform-origin:0 0}
+#owl .bob{animation:breathe 3.6s ease-in-out infinite;transform-box:view-box;transform-origin:100px 210px}
+
+#owl.pose-focus .lid{transform:scaleY(.42)}
+#owl.pose-focus #pupils{transform:translate(0,5px)}
+#owl.pose-focus .prop-book,#owl.pose-focus .prop-watch{opacity:1}
+#owl.pose-focus .hand{animation-play-state:running}
+#owl.pose-break .lid{transform:scaleY(.3)}
+#owl.pose-break .wing-l{transform:rotate(12deg)}
+#owl.pose-break .wing-r{transform:rotate(-12deg)}
+#owl.pose-sleep .lid{transform:scaleY(1)}
+#owl.pose-sleep .closed,#owl.pose-sleep .prop-zzz{opacity:1}
+#owl.pose-sleep .bob{animation-duration:6s}
+#owl.pose-cheer .wing-l{animation:flapL .45s ease-in-out infinite alternate}
+#owl.pose-cheer .wing-r{animation:flapR .45s ease-in-out infinite alternate}
+#owl.pose-cheer .bob{animation:hop .6s ease-in-out infinite}
+#owl.pose-cheer .prop-watch{opacity:1}
+#owl.pose-alert .prop-alert,#owl.pose-alert .prop-watch{opacity:1}
+#owl.pose-alert .bob{animation:shake .5s ease-in-out 3}
+#owl.pose-alert .hand{animation-play-state:running;animation-duration:1s}
+#owl.pose-water .prop-water{opacity:1}
+#owl.pose-water .wing-l{transform:rotate(24deg)}
+#owl.pose-remind .wing-r{transform:rotate(-40deg)}
+#owl.pose-remind .prop-alert{opacity:1}
+#owl.blink .lid{transform:scaleY(1)!important}
+@keyframes breathe{50%{transform:translateY(1.5px) scaleY(.99)}}
+@keyframes hop{50%{transform:translateY(-8px)}}
+@keyframes shake{25%{transform:rotate(-3deg)}75%{transform:rotate(3deg)}}
+@keyframes flapL{from{transform:rotate(10deg)}to{transform:rotate(55deg)}}
+@keyframes flapR{from{transform:rotate(-10deg)}to{transform:rotate(-55deg)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes drift{0%{transform:translate(0,0);opacity:0}30%{opacity:1}100%{transform:translate(10px,-18px);opacity:0}}
+#owl .prop-zzz text{animation:drift 3s ease-in infinite}
+#owl .prop-zzz text:nth-child(2){animation-delay:1s}
+#owl .prop-zzz text:nth-child(3){animation-delay:2s}
+
+/* panel */
+.panel{display:grid;gap:14px;min-width:0}
+.tabs{display:flex;gap:4px;background:var(--surface-2);border-radius:12px;padding:4px}
+.tabs button{flex:1;border:0;background:transparent;border-radius:9px;padding:9px 4px;font-weight:700;font-size:15px;cursor:pointer;min-height:42px;color:var(--muted)}
+.tabs button[aria-selected="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.sheet{display:grid;gap:14px}
+.sec{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;display:grid;gap:12px;min-width:0}
+.sec h2{font:600 18px/1.2 var(--display);margin:0;text-wrap:balance}
+.sec h2 small{font:400 13px var(--body);color:var(--muted);margin-left:6px}
+.hint{font-size:13px;color:var(--muted);margin:0}
+.tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.tile{background:var(--ground);border-radius:10px;padding:10px 12px;display:grid;gap:2px}
+.tile b{font:700 26px/1.1 var(--mono);font-variant-numeric:tabular-nums}
+.tile span{font-size:12px;color:var(--muted);letter-spacing:.04em}
+.chart{width:100%;height:auto;display:block}
+.chart text{fill:var(--muted);font:500 10px var(--mono)}
+.chart .gl{stroke:var(--line);stroke-width:1}
+.chart .b{fill:var(--bar)}
+.chart .b.today{fill:var(--accent)}
+.chart .v{fill:var(--ink);font-weight:700}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.row .field{flex:1 1 160px;width:auto}
+.row input[type="time"].field{flex:0 0 130px}
+.check{display:flex;gap:8px;align-items:center;font-size:14px;cursor:pointer}
+.check input{width:18px;height:18px;accent-color:var(--accent)}
+.list{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.list li{display:flex;align-items:center;gap:10px;background:var(--ground);border-radius:10px;padding:8px 8px 8px 12px}
+.list time{font:700 14px var(--mono);font-variant-numeric:tabular-nums;min-width:52px}
+.list .txt{flex:1;min-width:0;overflow-wrap:anywhere}
+.list .tag{font-size:11px;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:1px 8px}
+.list li.done .txt,.list li.done time{text-decoration:line-through;color:var(--muted)}
+.x{border:0;background:transparent;cursor:pointer;color:var(--muted);font-size:20px;line-height:1;width:36px;height:36px;border-radius:8px}
+.x:hover{background:var(--surface-2);color:var(--warn)}
+.empty{font-size:14px;color:var(--muted);padding:6px 2px;margin:0}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.lbl{display:grid;gap:4px;font-size:13px;color:var(--muted)}
+.lbl .field{color:var(--ink)}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{border:1px solid var(--line);background:var(--ground);border-radius:999px;padding:6px 12px;cursor:pointer;font-size:14px;min-height:36px}
+.chip[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft);font-weight:700}
+.sw{width:22px;height:22px;border-radius:50%;display:inline-block;vertical-align:-6px;margin-right:6px;border:2px solid var(--surface)}
+.plat{margin:0;padding-left:18px;display:grid;gap:6px;font-size:14px}
+.dev{display:grid;gap:6px;padding-top:12px;border-top:1px solid var(--line)}
+.dev h3{font:600 16px/1.25 var(--display);margin:0}
+.dev p{margin:0;font-size:14px}
+.dev-tag{justify-self:start;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent-ink);background:var(--accent);border-radius:999px;padding:2px 10px;font-weight:700}
+.dev a{color:var(--ink);font-weight:700;text-decoration-color:var(--accent);text-underline-offset:3px}
+code{font:500 13px var(--mono);background:var(--surface-2);border-radius:5px;padding:1px 5px}
+.plan,.park,.breakcard{width:100%;max-width:420px;display:grid;gap:8px;text-align:left}
+.plan>label,.park>label{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.prep .chip{font-size:13px;padding:5px 10px;min-height:32px}
+.parked{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:6px}
+.parked li{font-size:13px;background:var(--surface-2);border-radius:999px;padding:3px 10px;overflow-wrap:anywhere}
+.breakcard{background:var(--accent-soft);border-radius:12px;padding:12px 14px}
+.breakcard p{margin:0;font-size:15px}
+.eyebrow{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.overlay{position:fixed;inset:0;background:rgba(10,16,19,.55);display:grid;place-items:center;padding:16px;z-index:10}
+.sheetcard{background:var(--surface);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);padding:22px;max-width:540px;width:100%;display:grid;gap:12px;max-height:calc(100% - 32px);overflow-x:hidden;overflow-y:auto}
+.sheetcard h2{font:600 22px/1.2 var(--display);margin:0;text-wrap:balance}
+.sheetcard .controls{justify-content:flex-start}
+textarea.field{resize:vertical;min-height:120px;line-height:1.45;font:inherit}
+.score .chip{flex:1 1 40%}
+.goal{display:grid;gap:6px}
+.goal .row label{font-size:14px}
+.goal input{width:80px;flex:none}
+.goalbar{height:10px}
+.delta{font-weight:700}
+.delta.up{color:var(--good)}
+.delta.down{color:var(--warn)}
+.list .act{flex:none}
+.why{margin:0;padding-left:18px;display:grid;gap:6px;font-size:14px}
+.why cite{font-style:normal;color:var(--muted);font-size:12.5px;display:block}
+.idchip{font:700 13px var(--mono);letter-spacing:.06em;background:var(--surface-2);border-radius:6px;padding:2px 8px}
+.confirm{display:grid;gap:8px;background:var(--accent-soft);border-radius:10px;padding:10px 12px;font-size:14px}
+.privacy-list{margin:0;padding-left:18px;font-size:13px;color:var(--muted);display:grid;gap:2px}
+.note{font-size:14px;color:var(--muted);border-left:3px solid var(--line);padding-left:10px;margin:0}
+footer{font-size:12px;color:var(--muted);text-align:center}
+@media (max-width:420px){.tiles{gap:6px}.tile{padding:8px}.tile b{font-size:20px}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div class="brand">
+      <h1>Takt<b>Owl</b></h1>
+      <p>Focus in cycles. The owl keeps time.</p>
+    </div>
+    <button class="btn small" id="installBtn" hidden>Install app</button>
+  </header>
+
+  <div class="main">
+    <section class="stage" aria-label="Focus timer">
+      <div class="bubble" id="bubble" role="status" aria-live="polite">Hello. I'm Takt.</div>
+
+      <svg id="owl" viewBox="0 0 200 230" class="pose-sit" data-owl="barn" aria-hidden="true">
+        <ellipse class="shadow" cx="100" cy="220" rx="60" ry="7"/>
+        <g class="bob">
+          <ellipse class="foot" cx="82" cy="207" rx="10" ry="5.5"/>
+          <ellipse class="foot" cx="118" cy="207" rx="10" ry="5.5"/>
+          <path class="wing wing-l" d="M46 112 C24 134 24 180 54 200 C60 172 60 138 46 112Z"/>
+          <path class="wing wing-r" d="M154 112 C176 134 176 180 146 200 C140 172 140 138 154 112Z"/>
+          <path class="body" d="M54 72 L46 36 L80 58Z"/>
+          <path class="body" d="M146 72 L154 36 L120 58Z"/>
+          <path class="body" d="M100 50 C150 50 164 96 162 140 C160 184 136 208 100 208 C64 208 40 184 38 140 C36 96 50 50 100 50Z"/>
+          <ellipse class="belly" cx="100" cy="160" rx="40" ry="43"/>
+          <path class="marks" d="M84 146 l6 5 l6 -5 M104 146 l6 5 l6 -5 M94 163 l6 5 l6 -5 M84 180 l6 5 l6 -5 M104 180 l6 5 l6 -5"/>
+          <circle class="face" cx="77" cy="104" r="27"/>
+          <circle class="face" cx="123" cy="104" r="27"/>
+          <circle class="eye" cx="77" cy="104" r="16"/>
+          <circle class="eye" cx="123" cy="104" r="16"/>
+          <g id="pupils">
+            <circle class="pupil" cx="77" cy="104" r="8.5"/>
+            <circle class="pupil" cx="123" cy="104" r="8.5"/>
+            <circle class="glint" cx="80" cy="100" r="2.6"/>
+            <circle class="glint" cx="126" cy="100" r="2.6"/>
+          </g>
+          <ellipse class="lid" cx="77" cy="104" rx="17.5" ry="17.5"/>
+          <ellipse class="lid" cx="123" cy="104" rx="17.5" ry="17.5"/>
+          <path class="closed" d="M65 106 Q77 115 89 106 M111 106 Q123 115 135 106"/>
+          <path class="beak" d="M100 113 L92 123 L100 135 L108 123Z"/>
+          <g class="cap">
+            <rect class="cap-band" x="76" y="46" width="48" height="13" rx="3"/>
+            <path class="cap-top" d="M100 28 L152 42 L100 56 L48 42Z"/>
+            <path class="tassel" d="M100 42 L140 48 L140 64"/>
+            <circle class="tassel-end" cx="140" cy="67" r="4"/>
+          </g>
+          <g class="prop prop-book">
+            <path class="book" d="M60 168 L100 176 L140 168 L140 200 L100 208 L60 200Z"/>
+            <path class="page" d="M64 170 L98 177 L98 203 L64 197Z M136 170 L102 177 L102 203 L136 197Z"/>
+          </g>
+          <g class="prop prop-watch">
+            <rect class="watch-crown" x="160" y="118" width="8" height="7" rx="1.5"/>
+            <circle class="watch-face" cx="164" cy="144" r="18"/>
+            <path class="tickmk" d="M164 128 v4 M180 144 h-4 M164 160 v-4 M148 144 h4"/>
+            <line class="hand" x1="164" y1="144" x2="164" y2="132"/>
+          </g>
+          <g class="prop prop-water">
+            <path class="glass" d="M22 150 L46 150 L43 188 L25 188Z"/>
+            <path class="water" d="M24.3 162 L43.7 162 L43 186 L25 186Z"/>
+          </g>
+          <g class="prop prop-alert">
+            <circle class="alert-c" cx="36" cy="54" r="15"/>
+            <text class="alert-t" x="36" y="62">!</text>
+          </g>
+          <g class="prop prop-zzz">
+            <text class="zzz" x="150" y="46">z</text>
+            <text class="zzz" x="162" y="30">z</text>
+            <text class="zzz" x="174" y="14">Z</text>
+          </g>
+        </g>
+      </svg>
+
+      <div class="clock" id="clock">25:00</div>
+      <div class="mode" id="mode" data-m="idle"><span class="dot"></span><span id="modeText">Ready · 25-minute cycle</span></div>
+      <div class="taktwrap">
+        <div class="takt" id="takt"><i id="taktFill"></i></div>
+        <div class="scale"><span>0</span><span id="scaleEnd">25 min</span></div>
+      </div>
+      <div class="away" id="awayLine"></div>
+      <div class="task">
+        <label for="task">This cycle I will…</label>
+        <input class="field" id="task" maxlength="80" placeholder="e.g. Solve 3 problems on line balancing" autocomplete="off">
+      </div>
+      <div class="plan" id="plan">
+        <label for="ifThen">If I get distracted, then I will…</label>
+        <select class="field" id="ifThen">
+          <option value="park">write the thought in the parking lot and carry on</option>
+          <option value="breathe">take three slow breaths and go back to the task</option>
+          <option value="phone">put my phone in another room</option>
+          <option value="stand">stand up, stretch for 20 seconds, then restart</option>
+        </select>
+        <div class="chips prep" id="prep" role="group" aria-label="Before you start">
+          <button class="chip" data-k="phone" aria-pressed="false">Phone in another room</button>
+          <button class="chip" data-k="notif" aria-pressed="false">Notifications off</button>
+          <button class="chip" data-k="water" aria-pressed="false">Water ready</button>
+          <button class="chip" data-k="tabs" aria-pressed="false">Only the tabs I need</button>
+        </div>
+      </div>
+      <div class="controls">
+        <button class="btn primary" id="startBtn">Start focus</button>
+        <button class="btn" id="stopBtn" hidden>Stop</button>
+        <button class="btn" id="skipBtn" hidden>Skip break</button>
+      </div>
+      <div class="park" id="park" hidden>
+        <label for="parkText">Parking lot</label>
+        <form class="row" id="parkForm"><input class="field" id="parkText" maxlength="80" placeholder="Stray thought? Park it here and keep going" autocomplete="off"><button class="btn small" type="submit">Park</button></form>
+        <ul class="parked" id="parkList"></ul>
+        <div><button class="btn small" id="parkClear" hidden>Clear the parking lot</button></div>
+      </div>
+      <div class="breakcard" id="breakCard" hidden>
+        <span class="eyebrow">Break idea</span>
+        <p id="breakIdea"></p>
+        <div><button class="btn small" id="breakNext">Another idea</button></div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="tabs" role="tablist">
+        <button role="tab" id="tab-today" aria-controls="p-today" aria-selected="true">Today</button>
+        <button role="tab" id="tab-remind" aria-controls="p-remind" aria-selected="false">Reminders</button>
+        <button role="tab" id="tab-limits" aria-controls="p-limits" aria-selected="false">Limits</button>
+        <button role="tab" id="tab-owl" aria-controls="p-owl" aria-selected="false">Settings</button>
+      </div>
+
+      <div class="sheet" id="p-today" role="tabpanel" aria-labelledby="tab-today">
+        <div class="sec">
+          <h2>Today <small id="todayDate"></small></h2>
+          <div class="tiles">
+            <div class="tile"><b id="tMin">0</b><span>focus minutes</span></div>
+            <div class="tile"><b id="tCyc">0</b><span id="tCycLbl">cycles · 0 clean</span></div>
+            <div class="tile"><b id="tAway">0</b><span id="tAwayLbl">times away</span></div>
+          </div>
+          <p class="hint">A cycle is <b>clean</b> when your time away from TaktOwl stays within your allowance (set it in Settings).</p>
+        </div>
+        <div class="sec">
+          <h2>Due for review <small id="dueCount"></small></h2>
+          <ul class="list" id="dueList"></ul>
+          <form class="row" id="topicForm"><input class="field" id="topicText" maxlength="60" placeholder="Add a topic you studied, e.g. Control charts" autocomplete="off"><button class="btn small" type="submit">Add topic</button></form>
+          <p class="hint">Each topic comes back 1, 3, 7 and 21 days after you study it. Recall it from memory first, then check your notes.</p>
+        </div>
+        <div class="sec">
+          <h2>This week <small id="weekRange"></small></h2>
+          <div class="tiles">
+            <div class="tile"><b id="wMin">0</b><span id="wMinLbl">focus minutes</span></div>
+            <div class="tile"><b id="wClean">0</b><span>clean cycles</span></div>
+            <div class="tile"><b id="wRecall">0</b><span>recalls and reviews</span></div>
+          </div>
+          <div class="goal">
+            <div class="row"><label for="weekGoal">Weekly focus goal</label><input class="field" type="number" id="weekGoal" min="1" max="80" inputmode="numeric"><span class="hint">hours</span></div>
+            <div class="takt goalbar"><i id="goalFill"></i></div>
+            <span class="hint" id="goalText"></span>
+          </div>
+          <p class="note" id="lastPlan" hidden></p>
+          <label class="lbl">What helped you focus this week?<textarea class="field" id="reflGood" rows="2" maxlength="400" style="min-height:64px"></textarea></label>
+          <label class="lbl">What will you change next week?<textarea class="field" id="reflChange" rows="2" maxlength="400" style="min-height:64px"></textarea></label>
+        </div>
+        <div class="sec">
+          <h2>Last 7 days <small>focus minutes</small></h2>
+          <svg class="chart" id="chart" viewBox="0 0 340 160" role="img" aria-label="Focus minutes, last 7 days"></svg>
+        </div>
+        <div class="sec">
+          <h2>Why it works</h2>
+          <ul class="why">
+            <li><b>Recall checks.</b> Testing yourself from memory beats rereading your notes. <cite>Roediger &amp; Karpicke 2006; Dunlosky et al. 2013</cite></li>
+            <li><b>Spaced review.</b> Reviews spread over days beat the same time spent cramming. <cite>Cepeda et al. 2006</cite></li>
+            <li><b>If-then plans.</b> Deciding in advance what you'll do when distracted makes you likelier to follow through. <cite>Gollwitzer &amp; Sheeran 2006</cite></li>
+            <li><b>Parking lot.</b> Writing down a plan for a nagging task quiets it while you work. <cite>Masicampo &amp; Baumeister 2011</cite></li>
+            <li><b>Timed breaks.</b> Students who took scheduled breaks felt less tired than those who broke off whenever. <cite>Biwer et al. 2023</cite></li>
+            <li><b>Weekly review.</b> Keeping track of progress toward a goal helps you reach it. <cite>Harkin et al. 2016</cite></li>
+            <li><b>Sleep.</b> Sleep is when the day's learning is consolidated into memory. <cite>Diekelmann &amp; Born 2010</cite></li>
+          </ul>
+          <p class="note">Away watch: while a cycle runs, TaktOwl notices each time you leave the app and counts how long you were away. To have distracting sites and apps closed for you, see the Limits tab.</p>
+        </div>
+      </div>
+
+      <div class="sheet" id="p-remind" role="tabpanel" aria-labelledby="tab-remind" hidden>
+        <div class="sec">
+          <h2>Add a reminder</h2>
+          <form class="row" id="remForm">
+            <input class="field" id="remText" maxlength="80" placeholder="e.g. CAT-I question paper due" required>
+            <input class="field" type="time" id="remTime" required>
+            <label class="check"><input type="checkbox" id="remDaily"> Daily</label>
+            <button class="btn primary small" type="submit">Add</button>
+          </form>
+          <ul class="list" id="remList"></ul>
+        </div>
+        <div class="sec">
+          <h2>Water</h2>
+          <div class="row">
+            <label class="check"><input type="checkbox" id="setWater"> Remind me to drink water every</label>
+            <select class="field" id="setWaterEvery" style="flex:0 0 120px">
+              <option value="30">30 min</option><option value="45">45 min</option><option value="60">60 min</option><option value="90">90 min</option><option value="120">2 hours</option>
+            </select>
+          </div>
+          <p class="hint">Reminders go off while TaktOwl is open, including when it's in the background. Allow notifications so they reach you while you're in another app.</p>
+          <div class="row"><button class="btn small" id="notifBtn">Allow notifications</button><span class="hint" id="notifState"></span></div>
+        </div>
+      </div>
+
+      <div class="sheet" id="p-limits" role="tabpanel" aria-labelledby="tab-limits" hidden>
+        <div class="sec">
+          <h2>Close distracting apps</h2>
+          <p class="hint">Give Instagram, Shorts or WhatsApp a daily allowance. When it's used up, the owl closes it. Pick the tool for each device.</p>
+          <p class="note" id="winNote" hidden>You're using TaktOwl for Windows. The owl next to the clock is already on patrol: right-click it and choose <b>Limits and settings</b>.</p>
+          <div class="dev">
+            <span class="dev-tag">Windows 10 / 11</span>
+            <h3>TaktOwl for Windows</h3>
+            <p>The owl lives next to the clock. Give Instagram, YouTube, WhatsApp or any site or app a daily allowance. When it runs out, the owl closes the browser tab or the app. Works in Edge, Chrome, Firefox, Brave and Opera, with no extension needed.</p>
+            <ul class="why">
+              <li><b>One breath first.</b> Opening a limited site or app brings up a 10-second breathing pause and the choice to go back. <cite>A pause like this cut app openings by about half in a field study (Grüning et al. 2023).</cite></li>
+              <li><b>Commitment mode.</b> Stricter limits start now, looser ones only tomorrow. <cite>Allcott et al. 2022</cite></li>
+              <li><b>10 minutes a platform.</b> The default for social media. <cite>Hunt et al. 2018</cite></li>
+              <li><b>Bedtime lock</b>, and a <b>weekly review</b> every Monday.</li>
+            </ul>
+            <p><a href="downloads/TaktOwl_1.1.0_x64-setup.exe">Download TaktOwl_1.1.0_x64-setup.exe</a> · about 0.4 MB · no sign-up</p>
+            <ol class="plat">
+              <li>Your browser may say the file <i>isn't commonly downloaded</i>. That only means few people have downloaded it so far. Choose <b>Keep</b>.</li>
+              <li>If Windows shows <i>Windows protected your PC</i>, click <b>More info</b>, then <b>Run anyway</b>.</li>
+              <li>Click <b>Next</b>, then <b>Install</b>. Windows won't ask for an administrator password. When the green bar is full, click <b>Next</b>, then <b>Finish</b>.</li>
+            </ol>
+          </div>
+          <div class="dev">
+            <span class="dev-tag">Optional · browser</span>
+            <h3>TaktOwl Guard extension</h3>
+            <p>For exact web addresses, such as limiting YouTube Shorts but not the rest of YouTube, and for Chromebooks and Macs. Download <a href="downloads/TaktOwl-Guard-extension.zip">TaktOwl-Guard-extension.zip</a>, unzip it, open <code>edge://extensions</code>, switch on <b>Developer mode</b>, then click <b>Load unpacked</b>.</p>
+          </div>
+          <div class="dev">
+            <span class="dev-tag">Phone</span>
+            <h3>Use your phone's own app timers</h3>
+            <p>Android and iPhone don't let any downloaded app close other apps. Their built-in timers do exactly that, and a student can't simply swipe them away.</p>
+            <ol class="plat">
+              <li><b>Android:</b> Settings → Digital Wellbeing &amp; parental controls → Dashboard → pick the app → <b>App timer</b>. When time's up, the app pauses until midnight.</li>
+              <li><b>iPhone:</b> Settings → Screen Time → App Limits → <b>Add Limit</b> → pick the apps → set the time. Turn on <b>Block at End of Limit</b>.</li>
+              <li><b>At night:</b> Android's <b>Bedtime mode</b> (Digital Wellbeing) and iPhone's <b>Downtime</b> (Screen Time) keep apps closed while you sleep.</li>
+            </ol>
+          </div>
+        </div>
+      </div>
+
+      <div class="sheet" id="p-owl" role="tabpanel" aria-labelledby="tab-owl" hidden>
+        <div class="sec">
+          <h2>Cycle length</h2>
+          <div class="chips" id="presets">
+            <button class="chip" data-f="25" data-b="5">25 / 5 · Pomodoro</button>
+            <button class="chip" data-f="50" data-b="10">50 / 10 · Lecture</button>
+            <button class="chip" data-f="90" data-b="15">90 / 15 · Deep work</button>
+          </div>
+          <div class="grid2">
+            <label class="lbl">Focus (minutes)<input class="field" type="number" id="setFocus" min="1" max="180" inputmode="numeric"></label>
+            <label class="lbl">Break (minutes)<input class="field" type="number" id="setBreak" min="1" max="60" inputmode="numeric"></label>
+            <label class="lbl">Away allowance per cycle
+              <select class="field" id="setAllow"><option value="0">None, stay in app</option><option value="30">30 seconds</option><option value="60">1 minute</option><option value="120">2 minutes</option><option value="300">5 minutes</option></select>
+            </label>
+          </div>
+          <label class="check"><input type="checkbox" id="setAway"> Away watch: count the time I spend outside TaktOwl during a cycle</label>
+          <p class="hint">On a laptop, turn Away watch off if you keep TaktOwl open beside the window you're working in.</p>
+        </div>
+        <div class="sec">
+          <h2>Study habits</h2>
+          <label class="check"><input type="checkbox" id="setPlan"> Plan before each cycle: an if-then plan, a checklist and a parking lot</label>
+          <label class="check"><input type="checkbox" id="setRecall"> Recall check after each cycle</label>
+          <label class="check"><input type="checkbox" id="setBreakIdeas"> Suggest something to do on each break</label>
+          <div class="row"><label class="check"><input type="checkbox" id="setBed"> Bedtime reminder at</label><input class="field" type="time" id="setBedTime" style="flex:0 0 130px"></div>
+          <p class="hint">Thirty minutes before bedtime the owl reminds you to wind down.</p>
+        </div>
+        <div class="sec">
+          <h2>Your owl</h2>
+          <label class="lbl">Your name (the owl greets you)<input class="field" id="setName" maxlength="24" placeholder="e.g. Saranraj" autocomplete="off"></label>
+          <div class="chips" id="owlColours">
+            <button class="chip" data-owl="barn"><span class="sw" style="background:#8A5A3B"></span>Barn</button>
+            <button class="chip" data-owl="snowy"><span class="sw" style="background:#DDE2E6"></span>Snowy</button>
+            <button class="chip" data-owl="night"><span class="sw" style="background:#4B4F6E"></span>Night</button>
+            <button class="chip" data-owl="teak"><span class="sw" style="background:#5C6B3A"></span>Teak</button>
+          </div>
+          <div class="row">
+            <label class="check"><input type="checkbox" id="setCap"> Graduation cap</label>
+            <label class="check"><input type="checkbox" id="setSound"> Chime sounds</label>
+          </div>
+          <div>
+            <p class="hint" style="margin-bottom:6px">Try a pose:</p>
+            <div class="chips" id="poses">
+              <button class="chip" data-p="sit">sit</button><button class="chip" data-p="focus">focus</button><button class="chip" data-p="cheer">cheer</button>
+              <button class="chip" data-p="alert">alert</button><button class="chip" data-p="water">water</button><button class="chip" data-p="sleep">sleep</button>
+            </div>
+          </div>
+        </div>
+        <div class="sec">
+          <h2>Your data</h2>
+          <p class="hint">Everything stays on this device. Nothing is uploaded. You decide what to share and with whom.</p>
+          <div class="grid2">
+            <label class="lbl">Class code from your teacher<input class="field" id="setClass" maxlength="24" placeholder="e.g. QE3001-A" autocomplete="off"></label>
+            <div class="lbl">Your anonymous ID<span><span class="idchip" id="anonId"></span></span></div>
+          </div>
+          <label class="check"><input type="checkbox" id="exportName"> Include my name in the file I send my teacher</label>
+          <div class="row">
+            <button class="btn primary small" id="exportTeacher">Export for my teacher</button>
+            <button class="btn small" id="copyTeacher">Copy instead</button>
+          </div>
+          <ul class="privacy-list">
+            <li>Shared: daily focus minutes, cycles, clean cycles, times away, recall and review counts and scores, your settings, how many topics you're reviewing.</li>
+            <li>Never shared: what you wrote as tasks, recalls, topics, parking-lot notes or reflections.</li>
+          </ul>
+          <div class="row">
+            <button class="btn small" id="backupAll">Back up everything</button>
+            <label class="btn small" for="restoreFile" style="display:inline-flex;align-items:center">Restore from backup</label>
+            <input type="file" id="restoreFile" accept=".json,application/json" hidden>
+          </div>
+          <div class="confirm" id="restoreConfirm" hidden>
+            <span id="restoreText"></span>
+            <div class="row"><button class="btn small primary" id="restoreYes">Replace my data</button><button class="btn small" id="restoreNo">Cancel</button></div>
+          </div>
+          <p class="hint" id="dataMsg" role="status"></p>
+          <p class="hint">Read the <a href="privacy.html">privacy notice</a>.</p>
+        </div>
+        <div class="sec">
+          <h2>Install on your device</h2>
+          <ol class="plat">
+            <li><b>Windows:</b> open this page in Edge or Chrome, then click the install icon at the right end of the address bar (or ⋯ → Apps → Install).</li>
+            <li><b>Android:</b> in Chrome, tap ⋮ → <i>Install app</i> or <i>Add to Home screen</i>.</li>
+            <li><b>iPhone / iPad:</b> in Safari, tap Share → <i>Add to Home Screen</i>.</li>
+          </ol>
+          <p class="hint">Once installed, TaktOwl opens in its own window and works offline. Your data stays on your device and is never uploaded.</p>
+        </div>
+      </div>
+    </section>
+  </div>
+  <div class="overlay" id="recall" hidden role="dialog" aria-modal="true" aria-labelledby="recallTitle">
+    <div class="sheetcard">
+      <span class="eyebrow" id="recallEyebrow">Recall check</span>
+      <h2 id="recallTitle">What do you remember?</h2>
+      <div id="recallStep1" style="display:grid;gap:12px">
+        <p class="hint" id="recallLead"></p>
+        <textarea class="field" id="recallText" rows="6" maxlength="4000" placeholder="Keywords, formulas, a rough outline: anything you can pull from memory."></textarea>
+        <div class="controls"><button class="btn primary" id="recallCheck">Now check my notes</button><button class="btn" id="recallSkip">Skip this time</button></div>
+      </div>
+      <div id="recallStep2" hidden style="display:grid;gap:12px">
+        <p class="hint">Open your notes and compare. How much did you remember?</p>
+        <div class="chips score" id="recallScore">
+          <button class="chip" data-s="0">Almost nothing</button><button class="chip" data-s="1">Some of it</button>
+          <button class="chip" data-s="2">Most of it</button><button class="chip" data-s="3">All of it</button>
+        </div>
+        <label class="check" id="recallSchedWrap"><input type="checkbox" id="recallSched" checked> Bring this topic back for review in 1, 3, 7 and 21 days</label>
+        <p class="hint">Look over whatever you missed now. Right after a recall attempt is when the gaps are easiest to fill.</p>
+      </div>
+    </div>
+  </div>
+  <footer>TaktOwl · takt time is the pace your work needs to keep. Your data stays on this device.</footer>
+</div>
+
+<script>
+(function(){
+"use strict";
+const $=s=>document.querySelector(s);
+const KEY="taktowl.v1";
+const MIN=60000;
+const DEF={classCode:"",exportName:false,name:"",owl:"barn",cap:true,focusMin:25,breakMin:5,allowSec:60,awayWatch:true,water:true,waterEvery:60,sound:true,plan:true,recall:true,breakIdeas:true,bed:true,bedTime:"23:00",weekGoal:10};
+function load(){try{return JSON.parse(localStorage.getItem(KEY))||{}}catch(e){return {}}}
+const raw=load();
+const S={settings:Object.assign({},DEF,raw.settings||{}),reminders:raw.reminders||[],log:raw.log||{},task:raw.task||"",timer:raw.timer||null,lastWater:raw.lastWater||Date.now(),
+  anonId:raw.anonId||"",topics:raw.topics||[],recalls:raw.recalls||[],ifThen:raw.ifThen||"park",prep:raw.prep||{},park:raw.park||[],refl:raw.refl||{},windShown:raw.windShown||""};
+function save(){S.timer=T;try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+function idleTimer(){const t=S.settings.focusMin*MIN;return {mode:"idle",running:false,total:t,remaining:t,endAt:0,away:0}}
+let T=S.timer||idleTimer();
+if(Date.now()-S.lastWater>S.settings.waterEvery*MIN*2)S.lastWater=Date.now();
+
+/* ---------- helpers ---------- */
+const pad=n=>String(n).padStart(2,"0");
+function fmt(ms){const s=Math.ceil(ms/1000);return pad(Math.floor(s/60))+":"+pad(s%60)}
+function dur(ms){const s=Math.round(ms/1000);if(s<60)return s+"s";const m=Math.floor(s/60);return m+"m"+(s%60?" "+pad(s%60)+"s":"")}
+function dayKey(d){d=d||new Date();return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate())}
+function who(){return S.settings.name?", "+S.settings.name:""}
+function pick(a){return a[Math.floor(Math.random()*a.length)]}
+function bedMins(){const p=(S.settings.bedTime||"23:00").split(":");return (+p[0]||0)*60+(+p[1]||0)}
+function inBed(){if(!S.settings.bed)return false;const n=new Date(),m=n.getHours()*60+n.getMinutes(),f=bedMins(),t=6*60;return f<=t?m>=f&&m<t:m>=f||m<t}
+function toBed(){const n=new Date(),m=n.getHours()*60+n.getMinutes();return (bedMins()-m+1440)%1440}
+function greet(){const h=new Date().getHours();return h<12?"Good morning":h<17?"Good afternoon":"Good evening"}
+
+/* ---------- owl ---------- */
+const owl=$("#owl"),pupils=$("#pupils"),bubble=$("#bubble");
+let tempUntil=0,tempTimer=0,lastInteract=Date.now();
+function setPoseClass(p){owl.setAttribute("class","pose-"+p+(S.settings.cap?"":" no-cap"));if(p!=="sit")pupils.style.transform=""}
+function basePose(){
+  if(Date.now()<tempUntil)return;
+  let p="sit";
+  if(T.mode==="focus")p=T.running?"focus":"sit";
+  else if(T.mode==="break")p="break";
+  else if(Date.now()-lastInteract>5*MIN||inBed())p="sleep";
+  if(!owl.classList.contains("pose-"+p))setPoseClass(p);
+}
+function pose(p,ms){clearTimeout(tempTimer);tempUntil=Date.now()+(ms||4000);setPoseClass(p);tempTimer=setTimeout(()=>{tempUntil=0;basePose()},ms||4000)}
+let sayTimer=0;
+function say(text,ms){bubble.textContent=text;bubble.classList.remove("quiet");clearTimeout(sayTimer);sayTimer=setTimeout(()=>bubble.classList.add("quiet"),ms||10000)}
+(function blink(){setTimeout(()=>{if(!owl.classList.contains("pose-sleep")){owl.classList.add("blink");setTimeout(()=>owl.classList.remove("blink"),140)}blink()},2600+Math.random()*3800)})();
+window.addEventListener("pointermove",e=>{
+  if(!owl.classList.contains("pose-sit"))return;
+  const r=owl.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height*.45;
+  const dx=e.clientX-cx,dy=e.clientY-cy,d=Math.hypot(dx,dy)||1,k=Math.min(4.5,d/40);
+  pupils.style.transform="translate("+(dx/d*k).toFixed(1)+"px,"+(dy/d*k).toFixed(1)+"px)";
+},{passive:true});
+["pointerdown","keydown"].forEach(ev=>window.addEventListener(ev,()=>{const was=owl.classList.contains("pose-sleep")&&Date.now()>=tempUntil;lastInteract=Date.now();if(was){basePose();say(pick(["Oh! I'm awake.","Hoo! Back to work?","Just resting my eyes."]),5000)}},{passive:true}));
+
+/* ---------- sound, notifications, wake lock ---------- */
+let actx=null;
+function unlockAudio(){try{if(!actx)actx=new (window.AudioContext||window.webkitAudioContext)();if(actx.state==="suspended")actx.resume()}catch(e){}}
+function chime(times){
+  if(!S.settings.sound||!actx)return;
+  const notes=[880,1174.7,1568];let t=actx.currentTime;
+  for(let k=0;k<(times||1);k++){notes.forEach((f,i)=>{const o=actx.createOscillator(),g=actx.createGain();o.type="sine";o.frequency.value=f;g.gain.setValueAtTime(0.0001,t+i*.14);g.gain.exponentialRampToValueAtTime(.18,t+i*.14+.02);g.gain.exponentialRampToValueAtTime(.0001,t+i*.14+.9);o.connect(g).connect(actx.destination);o.start(t+i*.14);o.stop(t+i*.14+1)});t+=.7}
+}
+function notify(title,body){
+  try{
+    if(!("Notification" in window)||Notification.permission!=="granted"||!document.hidden)return;
+    const opts={body:body,icon:"icon-192.png",badge:"icon-192.png",tag:"taktowl"};
+    if(navigator.serviceWorker&&navigator.serviceWorker.controller){navigator.serviceWorker.ready.then(r=>r.showNotification(title,opts)).catch(()=>{})}
+    else new Notification(title,opts);
+  }catch(e){}
+}
+let wl=null;
+async function lock(){try{if(navigator.wakeLock&&!wl){wl=await navigator.wakeLock.request("screen");wl.addEventListener("release",()=>{wl=null})}}catch(e){wl=null}}
+function release(){try{if(wl)wl.release()}catch(e){}wl=null}
+
+/* ---------- log ---------- */
+function addLog(d){const k=dayKey(),o=S.log[k]||{min:0,cycles:0,clean:0,away:0,awaySec:0};for(const x in d)o[x]=(o[x]||0)+d[x];S.log[k]=o;save();renderToday()}
+
+/* ---------- timer ---------- */
+function remaining(){return T.running?Math.max(0,T.endAt-Date.now()):T.remaining}
+function startFocus(){
+  const t=S.settings.focusMin*MIN;T={mode:"focus",running:true,total:t,remaining:t,endAt:Date.now()+t,away:0};
+  save();lock();tempUntil=0;basePose();renderControls();
+  const task=$("#task").value.trim();
+  if(inBed()){say("It's past your bedtime. A short review now, then sleep: sleep is when today's work turns into memory.",12000);return}
+  if(S.settings.plan){say((task?"On it: "+task+". ":"Clock's running. ")+"If you get distracted, "+IFTHEN[S.ifThen]+".",12000);return}
+  say(task?pick(["On it. "+S.settings.focusMin+" minutes for: "+task+".","Clock's running. Just this: "+task+"."]):pick(["Clock's running. One thing at a time"+who()+".","Go. I'll keep time.","Phone face down. I've got the clock."]));
+}
+function startBreak(){const t=S.settings.breakMin*MIN;T={mode:"break",running:true,total:t,remaining:t,endAt:Date.now()+t,away:0};S.prep={};save();release();nextBreakIdea();renderControls();renderPrep()}
+function toggle(){
+  unlockAudio();
+  if(T.mode==="idle"){startFocus();return}
+  if(T.running){T.remaining=Math.max(0,T.endAt-Date.now());T.running=false;release();say("Paused. Press Resume when you're back.",6000)}
+  else{T.endAt=Date.now()+T.remaining;T.running=true;if(T.mode==="focus")lock();say("Back on the clock.",4000)}
+  save();tempUntil=0;basePose();renderControls();
+}
+function stop(){
+  if(T.mode==="focus"){const done=T.total-remaining();if(done>=MIN){addLog({min:Math.floor(done/MIN)});say("Stopped. Your "+Math.floor(done/MIN)+" minutes are saved in Today.",6000)}else say("Stopped. Nothing logged for under a minute.",5000)}
+  else say("Break skipped. Ready when you are.",5000);
+  T=idleTimer();save();release();tempUntil=0;basePose();renderControls();
+}
+function complete(){
+  if(T.mode==="focus"){
+    const clean=T.away<=S.settings.allowSec*1000,away=T.away;
+    addLog({min:Math.round(T.total/MIN),cycles:1,clean:clean?1:0});
+    chime(1);
+    notify("Cycle complete",S.settings.focusMin+" minutes done. Take a "+S.settings.breakMin+"-minute break.");
+    startBreak();pose("cheer",6000);
+    say(clean?pick(["Cycle kept on takt"+who()+". Break time: stretch and look at something far away.","Clean cycle! Take "+S.settings.breakMin+" minutes. Water, stretch, no scrolling."]):"Cycle done, but you were away "+dur(away)+". Take your break, then go for a clean one.",14000);
+    if(S.settings.recall)openRecall({mode:"cycle",topic:$("#task").value.trim()});
+  }else{
+    chime(2);notify("Break over","Ready for the next focus cycle?");
+    T=idleTimer();save();tempUntil=0;basePose();renderControls();
+    say("Break's over. Ready for the next cycle"+who()+"?",12000);
+  }
+}
+
+/* away watch */
+let awayStart=0;
+document.addEventListener("visibilitychange",()=>{
+  if(document.hidden){if(T.mode==="focus"&&T.running&&S.settings.awayWatch)awayStart=Date.now();return}
+  if(T.running&&T.mode==="focus")lock();
+  if(awayStart){
+    const d=Date.now()-awayStart;awayStart=0;
+    if(d>=3000&&T.mode==="focus"){
+      T.away+=d;addLog({away:1,awaySec:Math.round(d/1000)});save();
+      const allow=S.settings.allowSec*1000,over=T.away>allow;
+      pose(over?"alert":"remind",5000);
+      say(over?"You were away "+dur(d)+". That's "+dur(T.away)+" this cycle, over your "+(allow?dur(allow):"zero")+" allowance, so this one won't count as clean.":"Away "+dur(d)+". Still inside your allowance. Eyes back here.",12000);
+    }
+  }
+  tick();
+});
+
+/* ---------- render ---------- */
+const clock=$("#clock"),fill=$("#taktFill"),takt=$("#takt"),modeEl=$("#mode"),modeText=$("#modeText"),awayLine=$("#awayLine");
+let lastTitle="";
+function tick(){
+  const r=remaining();
+  if(T.running&&r<=0){complete();return}
+  clock.textContent=fmt(r);
+  fill.style.width=((1-r/T.total)*100).toFixed(2)+"%";
+  const mins=Math.round(T.total/MIN),step=mins>30?100/(mins/5):100/mins;
+  takt.style.setProperty("--step",step+"%");takt.classList.toggle("brk",T.mode==="break");
+  $("#scaleEnd").textContent=mins+" min";
+  const m=T.mode==="idle"?"idle":!T.running?"paused":T.mode;
+  modeEl.dataset.m=m;
+  modeText.textContent=m==="idle"?"Ready · "+mins+"-minute cycle":m==="paused"?"Paused · "+(T.mode==="focus"?"focus":"break"):m==="focus"?"Focus cycle":"Break";
+  if(T.mode==="focus"&&T.away>0){const over=T.away>S.settings.allowSec*1000;awayLine.textContent="Away this cycle: "+dur(T.away)+(over?" · over allowance":"");awayLine.classList.toggle("over",over)}
+  else{awayLine.textContent="";awayLine.classList.remove("over")}
+  const title=T.mode==="idle"?"TaktOwl":fmt(r)+" · "+(T.mode==="focus"?"Focus":"Break")+" · TaktOwl";
+  if(title!==lastTitle){document.title=title;lastTitle=title}
+}
+function renderControls(){
+  $("#startBtn").textContent=T.mode==="idle"?"Start focus":T.running?"Pause":"Resume";
+  $("#stopBtn").hidden=T.mode!=="focus";
+  $("#skipBtn").hidden=T.mode!=="break";
+  renderStage();
+  tick();
+}
+function renderToday(){
+  const o=S.log[dayKey()]||{min:0,cycles:0,clean:0,away:0,awaySec:0};
+  $("#todayDate").textContent=new Date().toLocaleDateString(undefined,{weekday:"long",day:"numeric",month:"short"});
+  $("#tMin").textContent=o.min;$("#tCyc").textContent=o.cycles;
+  $("#tCycLbl").textContent=(o.cycles===1?"cycle":"cycles")+" · "+o.clean+" clean";
+  $("#tAway").textContent=o.away;$("#tAwayLbl").textContent=o.away?"times away · "+dur(o.awaySec*1000):"times away";
+  renderChart();renderReviews();renderWeek();
+}
+function renderChart(){
+  const W=340,H=160,L=30,R=6,Tp=18,B=22,svg=$("#chart"),days=[];
+  for(let i=6;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);const k=dayKey(d);days.push({k:k,lbl:i===0?"Today":d.toLocaleDateString(undefined,{weekday:"short"}),v:(S.log[k]||{}).min||0,today:i===0})}
+  const mx=Math.max(...days.map(d=>d.v)),step=mx<=60?15:mx<=120?30:mx<=300?60:120,top=Math.max(step*2,Math.ceil(mx/step)*step);
+  const y=v=>Tp+(H-Tp-B)*(1-v/top),cw=(W-L-R)/7,bw=cw*.56;
+  let s="";
+  for(let v=0;v<=top;v+=step)s+='<line class="gl" x1="'+L+'" x2="'+(W-R)+'" y1="'+y(v)+'" y2="'+y(v)+'"/><text x="'+(L-6)+'" y="'+(y(v)+3)+'" text-anchor="end">'+v+'</text>';
+  days.forEach((d,i)=>{const x=L+cw*i+(cw-bw)/2,h=y(0)-y(d.v);
+    if(d.v>0)s+='<rect class="b'+(d.today?" today":"")+'" x="'+x.toFixed(1)+'" y="'+y(d.v).toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+h.toFixed(1)+'" rx="3"/>';
+    if(d.today||(d.v>0&&d.v===mx))s+='<text class="v" x="'+(x+bw/2)+'" y="'+(y(d.v)-5)+'" text-anchor="middle">'+d.v+'</text>';
+    s+='<text x="'+(x+bw/2)+'" y="'+(H-6)+'" text-anchor="middle">'+d.lbl+'</text>'});
+  svg.innerHTML=s;
+}
+
+/* ---------- reminders ---------- */
+function renderReminders(){
+  const ul=$("#remList");ul.textContent="";
+  const list=S.reminders.slice().sort((a,b)=>(a.done-b.done)||(a.at-b.at));
+  if(!list.length){const li=document.createElement("li");li.className="empty";li.style.background="none";li.textContent="No reminders yet. Add one above: a class, a deadline, a call.";ul.appendChild(li);return}
+  list.forEach(r=>{
+    const li=document.createElement("li");if(r.done)li.className="done";
+    const t=document.createElement("time"),d=new Date(r.at);t.textContent=pad(d.getHours())+":"+pad(d.getMinutes());
+    const x=document.createElement("span");x.className="txt";x.textContent=r.text;
+    li.append(t,x);
+    if(r.daily){const g=document.createElement("span");g.className="tag";g.textContent="daily";li.appendChild(g)}
+    else if(!r.done&&dayKey(d)!==dayKey()){const g=document.createElement("span");g.className="tag";g.textContent="tomorrow";li.appendChild(g)}
+    const b=document.createElement("button");b.className="x";b.setAttribute("aria-label","Delete reminder: "+r.text);b.textContent="×";
+    b.onclick=()=>{S.reminders=S.reminders.filter(z=>z.id!==r.id);save();renderReminders()};
+    li.appendChild(b);ul.appendChild(li);
+  });
+}
+$("#remForm").addEventListener("submit",e=>{
+  e.preventDefault();unlockAudio();
+  const text=$("#remText").value.trim(),tv=$("#remTime").value;if(!text||!tv)return;
+  const hm=tv.split(":").map(Number),d=new Date();d.setHours(hm[0],hm[1],0,0);if(d.getTime()<=Date.now())d.setDate(d.getDate()+1);
+  S.reminders.push({id:Date.now()+"-"+Math.random().toString(36).slice(2,6),text:text,at:d.getTime(),daily:$("#remDaily").checked,done:false});
+  save();renderReminders();$("#remText").value="";
+  say("Got it. I'll remind you at "+tv+": "+text+".",6000);pose("remind",2500);
+});
+function checkDue(){
+  const now=Date.now();
+  for(const r of S.reminders){
+    if(!r.done&&r.at<=now){
+      if(r.daily){while(r.at<=now)r.at+=864e5}else r.done=true;
+      save();renderReminders();chime(2);pose("remind",9000);say("Reminder"+who()+": "+r.text,20000);notify("Reminder",r.text);return;
+    }
+  }
+  if(S.settings.water&&now-S.lastWater>=S.settings.waterEvery*MIN){
+    S.lastWater=now;save();chime(1);pose("water",9000);say(pick(["Water time"+who()+". One glass, then back to it.","Hydration check. Drink some water."]),15000);notify("Water time","Have a glass of water.");
+  }
+  if(S.settings.bed&&!inBed()&&toBed()<=30&&S.windShown!==dayKey()){
+    S.windShown=dayKey();save();chime(1);pose("sleep",8000);
+    say("Bedtime in "+toBed()+" minutes"+who()+". Time to wind down: finish this bit and put the screens away.",20000);
+    notify("Wind down","Bedtime in "+toBed()+" minutes.");
+  }
+}
+
+/* ---------- settings ---------- */
+function applySettings(){
+  const s=S.settings;owl.dataset.owl=s.owl;owl.classList.toggle("no-cap",!s.cap);
+  $("#setFocus").value=s.focusMin;$("#setBreak").value=s.breakMin;$("#setAllow").value=String(s.allowSec);
+  $("#setAway").checked=s.awayWatch;$("#setName").value=s.name;$("#setCap").checked=s.cap;$("#setSound").checked=s.sound;
+  $("#setWater").checked=s.water;$("#setWaterEvery").value=String(s.waterEvery);
+  $("#setPlan").checked=s.plan;$("#setRecall").checked=s.recall;$("#setBreakIdeas").checked=s.breakIdeas;$("#setBed").checked=s.bed;$("#setBedTime").value=s.bedTime;$("#weekGoal").value=s.weekGoal;
+  document.querySelectorAll("#presets .chip").forEach(c=>c.setAttribute("aria-pressed",String(+c.dataset.f===s.focusMin&&+c.dataset.b===s.breakMin)));
+  document.querySelectorAll("#owlColours .chip").forEach(c=>c.setAttribute("aria-pressed",String(c.dataset.owl===s.owl)));
+  if(T.mode==="idle"){T=idleTimer()}
+  save();tick();
+}
+function num(v,lo,hi,d){v=parseInt(v,10);return isNaN(v)?d:Math.min(hi,Math.max(lo,v))}
+$("#setFocus").addEventListener("change",e=>{S.settings.focusMin=num(e.target.value,1,180,25);applySettings()});
+$("#setBreak").addEventListener("change",e=>{S.settings.breakMin=num(e.target.value,1,60,5);applySettings()});
+$("#setAllow").addEventListener("change",e=>{S.settings.allowSec=+e.target.value;applySettings()});
+$("#setAway").addEventListener("change",e=>{S.settings.awayWatch=e.target.checked;applySettings()});
+$("#setCap").addEventListener("change",e=>{S.settings.cap=e.target.checked;applySettings()});
+$("#setSound").addEventListener("change",e=>{S.settings.sound=e.target.checked;unlockAudio();applySettings();if(e.target.checked)chime(1)});
+$("#setWater").addEventListener("change",e=>{S.settings.water=e.target.checked;S.lastWater=Date.now();applySettings()});
+$("#setWaterEvery").addEventListener("change",e=>{S.settings.waterEvery=+e.target.value;S.lastWater=Date.now();applySettings()});
+$("#setName").addEventListener("change",e=>{S.settings.name=e.target.value.trim();applySettings();if(S.settings.name){pose("cheer",2500);say("Nice to meet you, "+S.settings.name+".",6000)}});
+$("#presets").addEventListener("click",e=>{const c=e.target.closest(".chip");if(!c)return;S.settings.focusMin=+c.dataset.f;S.settings.breakMin=+c.dataset.b;applySettings();say(c.dataset.f+"-minute cycles with "+c.dataset.b+"-minute breaks. Got it.",5000)});
+$("#owlColours").addEventListener("click",e=>{const c=e.target.closest(".chip");if(!c)return;S.settings.owl=c.dataset.owl;applySettings();pose("cheer",1800)});
+$("#poses").addEventListener("click",e=>{const c=e.target.closest(".chip");if(!c)return;pose(c.dataset.p,3500)});
+/* ---------- plan, parking lot, break ideas ---------- */
+const IFTHEN={park:"write the thought in the parking lot and carry on",breathe:"take three slow breaths and go back to the task",phone:"put your phone in another room",stand:"stand up, stretch for 20 seconds, then restart"};
+const BREAKS=["Stand up and stretch your arms overhead for 20 seconds.","Look at something at least 6 metres away for 20 seconds. Your eyes relax at a distance.","Drink a glass of water.","Walk to the window or around the room and back.","Breathe in for 4, out for 6. Five times.","Roll your shoulders and neck slowly, five times each way.","Tidy one thing on your desk. Leave the phone face down."];
+let breakIdx=Math.floor(Math.random()*BREAKS.length);
+function nextBreakIdea(){breakIdx=(breakIdx+1)%BREAKS.length;$("#breakIdea").textContent=BREAKS[breakIdx]}
+function renderStage(){
+  $("#plan").hidden=!(T.mode==="idle"&&S.settings.plan);
+  $("#park").hidden=!(S.settings.plan&&(T.mode==="focus"||(T.mode==="break"&&S.park.length>0)));
+  $("#breakCard").hidden=!(T.mode==="break"&&S.settings.breakIdeas);
+  $("#parkClear").hidden=!(T.mode==="break"&&S.park.length>0);
+}
+function renderPrep(){document.querySelectorAll("#prep .chip").forEach(c=>c.setAttribute("aria-pressed",String(!!S.prep[c.dataset.k])))}
+function renderPark(){const ul=$("#parkList");ul.textContent="";S.park.forEach(t=>{const li=document.createElement("li");li.textContent=t;ul.appendChild(li)});renderStage()}
+$("#ifThen").value=S.ifThen;
+$("#ifThen").addEventListener("change",e=>{S.ifThen=e.target.value;save()});
+$("#prep").addEventListener("click",e=>{const c=e.target.closest(".chip");if(!c)return;S.prep[c.dataset.k]=!S.prep[c.dataset.k];save();renderPrep()});
+$("#parkForm").addEventListener("submit",e=>{e.preventDefault();const t=$("#parkText").value.trim();if(!t)return;S.park.push(t);$("#parkText").value="";save();renderPark();say("Parked. It'll be here after the cycle. Back to it.",5000)});
+$("#parkClear").addEventListener("click",()=>{S.park=[];save();renderPark()});
+$("#breakNext").addEventListener("click",nextBreakIdea);
+$("#breakIdea").textContent=BREAKS[breakIdx];
+
+/* ---------- recall checks and spaced review ---------- */
+const GAPS=[1,2,4,14];   // days until the next review, so reviews land 1, 3, 7 and 21 days after studying
+function addDays(n){const d=new Date();d.setDate(d.getDate()+n);return dayKey(d)}
+let R=null;
+function openRecall(o){
+  const t=o.mode==="review"?S.topics.find(x=>x.id===o.id):null;
+  if(o.mode==="review"&&!t)return;
+  R=o;
+  $("#recallEyebrow").textContent=o.mode==="review"?"Spaced review · "+(t.step+1)+" of 4":"Recall check · about 2 minutes";
+  $("#recallTitle").textContent=o.mode==="review"?t.name:"What do you remember?";
+  $("#recallLead").textContent=o.mode==="review"
+    ?"From memory, write what you know about this topic. Then check your notes."
+    :"Without looking at your notes, write everything you remember from this cycle"+(o.topic?" on "+o.topic:"")+".";
+  const known=o.topic&&S.topics.some(x=>!x.done&&x.name.toLowerCase()===o.topic.toLowerCase());
+  $("#recallSchedWrap").hidden=o.mode==="review"||!o.topic||known;
+  $("#recallSched").checked=true;
+  $("#recallText").value="";
+  $("#recallStep1").hidden=false;$("#recallStep2").hidden=true;
+  $("#recall").hidden=false;
+  setTimeout(()=>$("#recallText").focus(),50);
+}
+function closeRecall(){$("#recall").hidden=true;R=null}
+$("#recallCheck").addEventListener("click",()=>{$("#recallStep1").hidden=true;$("#recallStep2").hidden=false});
+$("#recallSkip").addEventListener("click",closeRecall);
+$("#recallScore").addEventListener("click",e=>{
+  const c=e.target.closest(".chip");if(!c||!R)return;
+  const score=+c.dataset.s,words=($("#recallText").value.match(/\S+/g)||[]).length;
+  S.recalls.push({t:Date.now(),mode:R.mode,score:score,words:words});
+  if(S.recalls.length>300)S.recalls.splice(0,S.recalls.length-300);
+  if(R.mode==="review"){
+    const t=S.topics.find(x=>x.id===R.id);
+    if(t){
+      t.history.push({day:dayKey(),score:score});
+      if(score<=1)t.due=addDays(1);                           // missed a lot: see it again tomorrow
+      else{t.step++;if(t.step>=GAPS.length)t.done=true;else t.due=addDays(GAPS[t.step])}
+    }
+    addLog({reviews:1});
+  }else{
+    if(R.topic&&!$("#recallSchedWrap").hidden&&$("#recallSched").checked)addTopic(R.topic);
+    addLog({recalls:1});
+  }
+  closeRecall();save();renderToday();
+  say(score>=3?"All of it. That's retrieval doing its job.":score===2?"Most of it. Fill the gaps now while they're fresh.":"That's normal on a first try. Look over what you missed now; the effort of recalling is what makes it stick.",12000);
+  pose(score>=2?"cheer":"sit",3000);
+});
+function addTopic(name){
+  if(S.topics.some(x=>!x.done&&x.name.toLowerCase()===name.toLowerCase()))return false;
+  S.topics.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,5),name:name,created:dayKey(),step:0,due:addDays(GAPS[0]),history:[],done:false});
+  return true;
+}
+function dueTopics(){const k=dayKey();return S.topics.filter(x=>!x.done&&x.due<=k).sort((a,b)=>a.due<b.due?-1:1)}
+function renderReviews(){
+  const ul=$("#dueList");ul.textContent="";
+  const due=dueTopics(),k=dayKey(),tomorrow=S.topics.filter(x=>!x.done&&x.due===addDays(1)).length;
+  $("#dueCount").textContent=due.length?due.length+" due":"";
+  if(!due.length){
+    const li=document.createElement("li");li.className="empty";li.style.background="none";
+    li.textContent="Nothing due today."+(tomorrow?" "+tomorrow+(tomorrow===1?" topic comes":" topics come")+" back tomorrow.":" Finish a cycle with a recall check, or add a topic you studied.");
+    ul.appendChild(li);return;
+  }
+  due.forEach(t=>{
+    const li=document.createElement("li");
+    const x=document.createElement("span");x.className="txt";x.textContent=t.name;
+    const g=document.createElement("span");g.className="tag";g.textContent=t.due<k?"overdue":"review "+(t.step+1)+" of 4";
+    const b=document.createElement("button");b.className="btn small primary act";b.textContent="Recall now";
+    b.addEventListener("click",()=>{unlockAudio();openRecall({mode:"review",id:t.id})});
+    const d=document.createElement("button");d.className="x";d.textContent="×";d.setAttribute("aria-label","Stop reviewing "+t.name);
+    d.addEventListener("click",()=>{S.topics=S.topics.filter(z=>z.id!==t.id);save();renderReviews()});
+    li.append(x,g,b,d);ul.appendChild(li);
+  });
+}
+$("#topicForm").addEventListener("submit",e=>{
+  e.preventDefault();const n=$("#topicText").value.trim();if(!n)return;
+  if(addTopic(n)){$("#topicText").value="";save();renderReviews();say("Added. "+n+" comes back for review tomorrow.",6000)}
+  else say(n+" is already on your review list.",5000);
+});
+
+/* ---------- weekly review ---------- */
+function weekStart(d){d=new Date(d||Date.now());d.setHours(0,0,0,0);d.setDate(d.getDate()-((d.getDay()+6)%7));return d}
+function sumDays(start,n){const o={min:0,clean:0,cycles:0,recalls:0,reviews:0};for(let i=0;i<n;i++){const d=new Date(start);d.setDate(d.getDate()+i);const l=S.log[dayKey(d)];if(l)for(const k in o)o[k]+=l[k]||0}return o}
+function renderWeek(){
+  const ws=weekStart(),days=(new Date().getDay()+6)%7+1,prev=new Date(ws);prev.setDate(prev.getDate()-7);
+  const w=sumDays(ws,7),p=sumDays(prev,days),wk=dayKey(ws);   // compare with the same days of last week
+  const end=new Date(ws);end.setDate(end.getDate()+6);
+  const f=d=>d.toLocaleDateString(undefined,{day:"numeric",month:"short"});
+  $("#weekRange").textContent=f(ws)+" – "+f(end);
+  $("#wMin").textContent=w.min;$("#wClean").textContent=w.clean;$("#wRecall").textContent=w.recalls+w.reviews;
+  const lbl=$("#wMinLbl");lbl.textContent="focus minutes";
+  if(p.min>0){const pct=Math.round(100*(w.min-p.min)/p.min),sp=document.createElement("span");sp.className="delta "+(pct>=0?"up":"down");sp.textContent=" "+(pct>=0?"+":"")+pct+"% vs last week";lbl.appendChild(sp)}
+  const goal=S.settings.weekGoal||10,hrs=w.min/60;
+  $("#goalFill").style.width=Math.min(100,hrs/goal*100).toFixed(1)+"%";
+  $("#goalText").textContent=(Math.round(hrs*10)/10)+" of "+goal+" hours"+(hrs>=goal?". Goal reached!":"");
+  const r=S.refl[wk]||{},lastR=S.refl[dayKey(prev)]||{};
+  if(document.activeElement!==$("#reflGood"))$("#reflGood").value=r.good||"";
+  if(document.activeElement!==$("#reflChange"))$("#reflChange").value=r.change||"";
+  $("#lastPlan").hidden=!lastR.change;
+  if(lastR.change)$("#lastPlan").textContent="Last week you planned to change: "+lastR.change;
+}
+["reflGood","reflChange"].forEach(id=>$("#"+id).addEventListener("input",e=>{const wk=dayKey(weekStart());S.refl[wk]=S.refl[wk]||{};S.refl[wk][id==="reflGood"?"good":"change"]=e.target.value;save()}));
+$("#weekGoal").addEventListener("change",e=>{S.settings.weekGoal=num(e.target.value,1,80,10);applySettings();renderWeek()});
+$("#setPlan").addEventListener("change",e=>{S.settings.plan=e.target.checked;applySettings();renderStage()});
+$("#setRecall").addEventListener("change",e=>{S.settings.recall=e.target.checked;applySettings()});
+$("#setBreakIdeas").addEventListener("change",e=>{S.settings.breakIdeas=e.target.checked;applySettings();renderStage()});
+$("#setBed").addEventListener("change",e=>{S.settings.bed=e.target.checked;applySettings()});
+$("#setBedTime").addEventListener("change",e=>{if(/^\d\d:\d\d$/.test(e.target.value)){S.settings.bedTime=e.target.value;S.windShown="";applySettings()}});
+renderPrep();renderPark();
+
+/* ---------- your data: export, back up, restore ---------- */
+// A random ID per device, so a teacher can tell files apart without knowing who sent them.
+if(!S.anonId){const a="ABCDEFGHJKLMNPQRSTUVWXYZ23456789";let id="";const r=new Uint8Array(8);try{crypto.getRandomValues(r)}catch(e){for(let i=0;i<8;i++)r[i]=Math.random()*256}r.forEach(b=>id+=a[b%a.length]);S.anonId=id.slice(0,4)+"-"+id.slice(4);save()}
+$("#anonId").textContent=S.anonId;
+$("#setClass").value=S.settings.classCode;
+$("#exportName").checked=S.settings.exportName;
+$("#setClass").addEventListener("change",e=>{S.settings.classCode=e.target.value.trim().toUpperCase().replace(/\s+/g,"");e.target.value=S.settings.classCode;save()});
+$("#exportName").addEventListener("change",e=>{S.settings.exportName=e.target.checked;save()});
+
+function msg(t){$("#dataMsg").textContent=t}
+// On a claude.ai link, files go through the viewer's save prompt; elsewhere, a normal download.
+let dl=null;
+try{if(window.claude&&window.claude.use)window.claude.use("downloads").then(d=>{dl=d}).catch(()=>{})}catch(e){}
+async function offerFile(name,text){
+  if(dl){try{await dl.save({filename:name,data:text});return "saved"}catch(e){return e&&e.code==="declined"?"declined":"blocked"}}
+  return saveFile(name,text)?"saved":"blocked";
+}
+function saveFile(name,text){
+  try{
+    const a=document.createElement("a");
+    a.href=URL.createObjectURL(new Blob([text],{type:"application/json"}));
+    a.download=name;document.body.appendChild(a);a.click();
+    setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1500);
+    return true;
+  }catch(e){return false}
+}
+// Daily totals only. Nothing the student typed is included.
+function teacherExport(){
+  const s=S.settings,days=Object.keys(S.log).sort().map(k=>{const o=S.log[k];return {date:k,focusMin:o.min||0,cycles:o.cycles||0,clean:o.clean||0,away:o.away||0,awaySec:o.awaySec||0,recalls:o.recalls||0,reviews:o.reviews||0}});
+  return {
+    app:"TaktOwl web",format:1,exported:new Date().toISOString(),
+    student:{id:S.anonId,class:s.classCode||"",name:s.exportName&&s.name?s.name:""},
+    settings:{focusMin:s.focusMin,breakMin:s.breakMin,allowSec:s.allowSec,awayWatch:s.awayWatch,plan:s.plan,recall:s.recall,breakIdeas:s.breakIdeas,bed:s.bed,bedTime:s.bedTime,weekGoal:s.weekGoal},
+    days:days,
+    recalls:S.recalls.map(r=>({date:dayKey(new Date(r.t)),mode:r.mode,score:r.score,words:r.words})),
+    topics:{active:S.topics.filter(t=>!t.done).length,completed:S.topics.filter(t=>t.done).length}
+  };
+}
+function fileStamp(){return dayKey()}
+$("#exportTeacher").addEventListener("click",()=>{
+  if(!S.settings.classCode){msg("Add the class code your teacher gave you first, so your file lands in the right class.");$("#setClass").focus();return}
+  offerFile("TaktOwl-"+S.settings.classCode+"-"+S.anonId+"-"+fileStamp()+".json",JSON.stringify(teacherExport(),null,1)).then(r=>
+    msg(r==="saved"?"Saved. Send the file to your teacher by email or your class's LMS. If no file appeared, use Copy instead.":r==="declined"?"Export cancelled.":"Saving a file was blocked here. Use Copy instead."));
+});
+$("#copyTeacher").addEventListener("click",async()=>{
+  const text=JSON.stringify(teacherExport());
+  try{await navigator.clipboard.writeText(text);msg("Copied. Paste it into an email or a message to your teacher.")}
+  catch(e){msg("Copying was blocked here. Use Export for my teacher instead.")}
+});
+$("#backupAll").addEventListener("click",()=>{
+  const b={app:"TaktOwl web backup",format:1,exported:new Date().toISOString(),data:S};
+  offerFile("TaktOwl-backup-"+fileStamp()+".json",JSON.stringify(b)).then(r=>
+    msg(r==="saved"?"Backup saved. Keep it somewhere safe: it includes your notes and reflections.":r==="declined"?"Backup cancelled.":"Saving a file was blocked here."));
+});
+let pendingRestore=null;
+$("#restoreFile").addEventListener("change",e=>{
+  const f=e.target.files&&e.target.files[0];e.target.value="";if(!f)return;
+  const r=new FileReader();
+  r.onload=()=>{
+    let b;try{b=JSON.parse(r.result)}catch(err){msg("That file isn't a TaktOwl backup.");return}
+    if(!b||b.app!=="TaktOwl web backup"||!b.data){msg(b&&b.app==="TaktOwl web"?"That's a teacher export, which leaves out your notes. Choose a backup file instead.":"That file isn't a TaktOwl backup.");return}
+    pendingRestore=b.data;
+    $("#restoreText").textContent="Replace everything on this device with the backup from "+new Date(b.exported).toLocaleString()+"?";
+    $("#restoreConfirm").hidden=false;
+  };
+  r.readAsText(f);
+});
+$("#restoreNo").addEventListener("click",()=>{pendingRestore=null;$("#restoreConfirm").hidden=true});
+$("#restoreYes").addEventListener("click",()=>{
+  if(!pendingRestore)return;
+  try{localStorage.setItem(KEY,JSON.stringify(pendingRestore))}catch(e){msg("Couldn't save the backup on this device.");return}
+  location.reload();
+});
+
+$("#task").value=S.task;$("#task").addEventListener("input",e=>{S.task=e.target.value;save()});
+
+/* notifications */
+function notifState(){const el=$("#notifState");if(!("Notification" in window)){el.textContent="Not available here. On iPhone, install the app first.";$("#notifBtn").hidden=true;return}
+  el.textContent=Notification.permission==="granted"?"Notifications are on.":Notification.permission==="denied"?"Blocked. Allow them in your browser's site settings.":"";
+  $("#notifBtn").hidden=Notification.permission!=="default"}
+$("#notifBtn").addEventListener("click",()=>{unlockAudio();try{const p=Notification.requestPermission(notifState);if(p&&p.then)p.then(notifState)}catch(e){notifState()}});
+
+/* tabs */
+document.querySelectorAll(".tabs button").forEach(b=>b.addEventListener("click",()=>{
+  document.querySelectorAll(".tabs button").forEach(x=>{const on=x===b;x.setAttribute("aria-selected",String(on));$("#"+x.getAttribute("aria-controls")).hidden=!on});
+}));
+
+/* controls */
+$("#startBtn").addEventListener("click",toggle);
+$("#stopBtn").addEventListener("click",stop);
+$("#skipBtn").addEventListener("click",stop);
+window.addEventListener("keydown",e=>{if(!$("#recall").hidden){if(e.key==="Escape")closeRecall();return}if(e.code==="Space"&&!/INPUT|SELECT|TEXTAREA|BUTTON/.test(document.activeElement.tagName)){e.preventDefault();toggle()}});
+
+/* install */
+let deferred=null;
+window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferred=e;$("#installBtn").hidden=false});
+$("#installBtn").addEventListener("click",async()=>{if(!deferred)return;deferred.prompt();try{await deferred.userChoice}catch(e){}deferred=null;$("#installBtn").hidden=true});
+window.addEventListener("appinstalled",()=>{$("#installBtn").hidden=true;say("Installed. Find me in your apps list.",6000)});
+if(location.protocol==="file:"){$("#winNote").hidden=false;$("#installBtn").hidden=true}
+try{if("serviceWorker" in navigator&&/^https?:$/.test(location.protocol))navigator.serviceWorker.register("sw.js").catch(()=>{})}catch(e){}
+
+/* boot */
+applySettings();renderToday();renderReminders();notifState();
+if(T.running&&T.mode==="focus")lock();
+basePose();
+const o=S.log[dayKey()];
+const dueN=dueTopics().length;
+say(T.mode==="focus"?"Welcome back. The cycle is still running.":dueN?greet()+who()+". "+dueN+(dueN===1?" topic is":" topics are")+" due for review today. Start there: spaced reviews are the best-value minutes of your day.":greet()+who()+". I'm Takt. "+(o&&o.cycles?"You've done "+o.cycles+" "+(o.cycles===1?"cycle":"cycles")+" today. One more?":"Write down one thing to work on, then press Start."),14000);
+renderControls();
+setInterval(tick,250);
+setInterval(checkDue,5000);
+setInterval(()=>{basePose();renderToday()},30000);
+})();
+</script>
+</body>
+</html>

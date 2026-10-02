@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>TaktOwl Privacy Notice</title>
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,700&display=swap">
+<style>
+:root{--ground:#EDF1EE;--surface:#F9FBF9;--ink:#1B2A33;--muted:#566870;--line:#CDD7D2;--accent:#B57F0E;color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--ground:#10171A;--surface:#172125;--ink:#E3EBE7;--muted:#93A4A5;--line:#2A393E;--accent:#F0B43A;color-scheme:dark}}
+:root[data-theme="dark"]{--ground:#10171A;--surface:#172125;--ink:#E3EBE7;--muted:#93A4A5;--line:#2A393E;--accent:#F0B43A;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--ground);color:var(--ink);font:16px/1.6 "Atkinson Hyperlegible","Segoe UI",system-ui,sans-serif}
+main{max-width:720px;margin:0 auto;padding-inline:16px;padding-block:32px 48px}
+h1{font:700 clamp(28px,5vw,38px)/1.15 "Bricolage Grotesque","Segoe UI",sans-serif;margin:0 0 6px;text-wrap:balance}
+h2{font:700 20px/1.3 "Bricolage Grotesque","Segoe UI",sans-serif;margin:32px 0 8px;text-wrap:balance}
+p,li{max-width:65ch}
+.meta{color:var(--muted);margin:0 0 24px}
+table{border-collapse:collapse;width:100%;font-size:15px}
+.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+tr:last-child td{border-bottom:0}
+th{font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.fill{background:rgba(227,162,26,.18);border-radius:4px;padding:0 4px}
+a{color:var(--accent)}
+</style>
+</head>
+<body>
+<main>
+  <h1>TaktOwl privacy notice</h1>
+  <p class="meta">Applies to the TaktOwl web app, TaktOwl for Windows and the TaktOwl Guard browser extension. Last updated 2 October 2026.</p>
+
+  <p><b>In short:</b> TaktOwl keeps everything on your own device. It has no accounts, no servers that collect your data, no advertising and no analytics. Your data leaves your device only if you export a file and choose to send it to someone.</p>
+
+  <h2>What TaktOwl keeps on your device</h2>
+  <div class="tbl"><table>
+    <tr><th>Part</th><th>What it stores</th><th>Where</th></tr>
+    <tr><td>Web app</td><td>Focus cycles and minutes, time away during cycles, reminders, recall scores, topics to review, tasks, parking-lot notes, weekly goals and reflections, settings</td><td>Your browser's storage for the TaktOwl site</td></tr>
+    <tr><td>TaktOwl for Windows</td><td>The limits you set, minutes used on each limited site or app per day, how often you opened them and chose Back to work, settings</td><td><code>%APPDATA%\TaktOwl</code> on your computer</td></tr>
+    <tr><td>TaktOwl Guard extension</td><td>The sites you limit, minutes used on each per day, pause choices, settings</td><td>The extension's storage in your browser</td></tr>
+  </table></div>
+
+  <h2>What TaktOwl reads, and why</h2>
+  <p>To know when a limit is being used, TaktOwl for Windows reads the title of the window in front of you and the name of its program. The extension reads the address of the tab in front of you. Both are checked against your limits on the spot and are never saved, sent or shown to anyone. Only the minutes for the limits you set are counted.</p>
+
+  <h2>Sharing with your teacher</h2>
+  <p>"Export my data" saves a file on your device. Nothing is sent automatically: you decide whether to send that file and to whom. An export contains:</p>
+  <ul>
+    <li>a random anonymous ID and the class code you typed in, plus your name only if you tick "Include my name";</li>
+    <li>daily totals: focus minutes, cycles, clean cycles, times away, recall and review counts and scores;</li>
+    <li>for Windows and the extension, minutes used per limit per day and your choices at the pause;</li>
+    <li>your TaktOwl settings.</li>
+  </ul>
+  <p>An export never contains your tasks, recall answers, topic names, parking-lot notes, reflections, window titles or web addresses.</p>
+  <p>Teachers combine the files they receive on their own computer with TaktOwl's class report page, which runs entirely in their browser and uploads nothing. Teachers should keep these files with their other student records and use them only for teaching and, where students have agreed, approved research.</p>
+
+  <h2>Your choices</h2>
+  <ul>
+    <li><b>See or remove your data:</b> uninstalling the Windows app or the extension, or clearing the TaktOwl site's data in your browser, deletes it. The Windows app's history stays in <code>%APPDATA%\TaktOwl</code> until you delete that folder.</li>
+    <li><b>Withdraw from sharing:</b> stop sending exports at any time, and ask your teacher to delete files you have already sent.</li>
+    <li><b>Students under 18:</b> a parent or guardian should agree before an export is shared for research.</li>
+  </ul>
+
+  <h2>Updates</h2>
+  <p>If the person who set up your copy has entered their TaktOwl site's address, TaktOwl for Windows checks it once a day for a newer version. The check sends no information about you beyond the usual details any web request carries, such as your IP address.</p>
+
+  <h2>Contact</h2>
+  <p>Questions about TaktOwl or your data: Dr. Saranraj Ramachandran, Department of Industrial Engineering, CEG Campus, Anna University — <a href="mailto:fencer.saran@tf.annauniv.edu">fencer.saran@tf.annauniv.edu</a>.</p>
+  <p><a href="index.html">Back to TaktOwl</a></p>
+</main>
+</body>
+</html>
